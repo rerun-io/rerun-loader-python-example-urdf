@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import argparse
 import os
+import pathlib
 import tempfile
 
-import pathlib
 import numpy as np
 import rerun as rr  # pip install rerun-sdk
 import scipy.spatial.transform as st
@@ -105,9 +105,10 @@ class URDFLogger:
         if visual.origin is not None and visual.origin.rpy is not None:
             transform[:3, :3] = st.Rotation.from_euler("xyz", visual.origin.rpy).as_matrix()
 
-        mesh = mesh_path = None
+        mesh = mesh_path = mesh_scale = None
         if isinstance(visual.geometry, urdf_parser.Mesh):
             resolved_path = resolve_ros_path(visual.geometry.filename)
+            mesh_scale = visual.geometry.scale
             tmp_dir = tempfile.mkdtemp()
             tmp_mesh = trimesh.load_mesh(resolved_path)
             tmp_mesh.export(os.path.join(tmp_dir, "mesh.glb"))
@@ -144,16 +145,20 @@ class URDFLogger:
                     vertex_positions=mesh.vertices,
                     indices=mesh.faces,
                     vertex_normals=mesh.vertex_normals,
-                    vertex_colors=mesh.visual.vertex_colors
+                    vertex_colors=mesh.visual.vertex_colors,
                 ),
                 timeless=True,
             )
         else:
+            if mesh_scale is None:
+                mesh_scale = [1, 1, 1]
             rr.log(
                 entity_path,
                 rr.Asset3D(
                     path=mesh_path,
-                    transform=rr.TranslationAndMat3x3(translation=transform[:3, 3], mat3x3=transform[:3, :3]),
+                    transform=rr.TranslationAndMat3x3(
+                        translation=transform[:3, 3], mat3x3=transform[:3, :3] @ np.diag(mesh_scale)
+                    ),
                 ),
                 timeless=True,
             )
