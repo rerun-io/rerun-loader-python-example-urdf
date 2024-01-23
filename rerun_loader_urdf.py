@@ -6,41 +6,13 @@ import argparse
 import os
 import pathlib
 import tempfile
+from typing import Optional
 
 import numpy as np
 import rerun as rr  # pip install rerun-sdk
 import scipy.spatial.transform as st
 import trimesh
 from urdf_parser_py import urdf as urdf_parser
-
-
-def resolve_ros_path(path: str) -> str:
-    """Resolve a ROS path to an absolute path."""
-    if path.startswith("package://"):
-        path = pathlib.Path(path)
-        package_name = path.parts[1]
-        relative_path = pathlib.Path(*path.parts[2:])
-        try:
-            # first try ROS1 way of resolving paths
-            import rospkg
-
-            package_path = rospkg.RosPack().get_path(package_name)
-        except ImportError:
-            try:
-                # TODO: then try ROS2 way of resolving paths
-                import ament_index_python
-
-                package_path = ament_index_python.get_package_share_directory(path[len("package://") :].split("/")[0])
-            except ImportError:
-                raise ImportError(
-                    f"Could not import either rospkg or ament_index_python to resolve {path}."
-                    "Replace with relative or absolute paths or source a ROS environment."
-                )
-        return str(package_path / relative_path)
-    elif str(path).startswith("file://"):
-        return path[len("file://") :]
-    else:
-        return path
 
 
 class URDFLogger:
@@ -162,6 +134,52 @@ class URDFLogger:
                 ),
                 timeless=True,
             )
+
+
+def resolve_ros_path(path: str) -> str:
+    """Resolve a ROS path to an absolute path."""
+    if path.startswith("package://"):
+        path = pathlib.Path(path)
+        package_name = path.parts[1]
+        relative_path = pathlib.Path(*path.parts[2:])
+
+        package_path = resolve_ros1_package(package_name) or resolve_ros2_package(package_name)
+
+        if package_path is None:
+            raise ValueError(
+                f"Could not resolve {path}."
+                f"Replace with relative / absolute path, source the correct ROS environment, or install {package_name}."
+            )
+
+        return str(package_path / relative_path)
+    elif str(path).startswith("file://"):
+        return path[len("file://") :]
+    else:
+        return path
+
+
+def resolve_ros2_package(package_name: str) -> Optional[str]:
+    try:
+        import ament_index_python
+
+        try:
+            return ament_index_python.get_package_share_directory(package_name)
+        except ament_index_python.packages.PackageNotFoundError:
+            return None
+    except ImportError:
+        return None
+
+
+def resolve_ros1_package(package_name: str) -> str:
+    try:
+        import rospkg
+
+        try:
+            return rospkg.RosPack().get_path(package_name)
+        except rospkg.ResourceNotFound:
+            return None
+    except ImportError:
+        return None
 
 
 # The Rerun Viewer will always pass these two pieces of information:
