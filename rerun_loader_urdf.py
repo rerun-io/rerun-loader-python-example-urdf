@@ -6,11 +6,41 @@ import argparse
 import os
 import tempfile
 
+import pathlib
 import numpy as np
 import rerun as rr  # pip install rerun-sdk
 import scipy.spatial.transform as st
 import trimesh
 from urdf_parser_py import urdf as urdf_parser
+
+
+def resolve_ros_path(path: str) -> str:
+    """Resolve a ROS path to an absolute path."""
+    if path.startswith("package://"):
+        path = pathlib.Path(path)
+        package_name = path.parts[1]
+        relative_path = pathlib.Path(*path.parts[2:])
+        try:
+            # first try ROS1 way of resolving paths
+            import rospkg
+
+            package_path = rospkg.RosPack().get_path(package_name)
+        except ImportError:
+            try:
+                # TODO: then try ROS2 way of resolving paths
+                import ament_index_python
+
+                package_path = ament_index_python.get_package_share_directory(path[len("package://") :].split("/")[0])
+            except ImportError:
+                raise ImportError(
+                    f"Could not import either rospkg or ament_index_python to resolve {path}."
+                    "Replace with relative or absolute paths or source a ROS environment."
+                )
+        return str(package_path / relative_path)
+    elif str(path).startswith("file://"):
+        return path[len("file://") :]
+    else:
+        return path
 
 
 class URDFLogger:
@@ -77,22 +107,21 @@ class URDFLogger:
 
         mesh = mesh_path = None
         if isinstance(visual.geometry, urdf_parser.Mesh):
+            resolved_path = resolve_ros_path(visual.geometry.filename)
             tmp_dir = tempfile.mkdtemp()
-            tmp_mesh = trimesh.load_mesh(visual.geometry.filename)
+            tmp_mesh = trimesh.load_mesh(resolved_path)
             tmp_mesh.export(os.path.join(tmp_dir, "mesh.glb"))
             mesh_path = os.path.join(tmp_dir, "mesh.glb")
         elif isinstance(visual.geometry, urdf_parser.Box):
-            mesh = trimesh.creation.box(extents=visual.geometry.size, transform=transform)
+            mesh = trimesh.creation.box(extents=visual.geometry.size)
         elif isinstance(visual.geometry, urdf_parser.Cylinder):
             mesh = trimesh.creation.cylinder(
                 radius=visual.geometry.radius,
                 height=visual.geometry.length,
-                transform=transform,
             )
         elif isinstance(visual.geometry, urdf_parser.Sphere):
             mesh = trimesh.creation.icosphere(
                 radius=visual.geometry.radius,
-                transform=transform,
             )
         else:
             rr.log(
@@ -101,7 +130,6 @@ class URDFLogger:
             )
             mesh = trimesh.Trimesh()
 
-
         if mesh is not None:
             mesh.visual = trimesh.visual.ColorVisuals()
             if material is not None and material.color is not None and mesh.visual is not None:
@@ -109,13 +137,14 @@ class URDFLogger:
 
             # TODO support material with texture
 
+            mesh.apply_transform(transform)
             rr.log(
                 entity_path,
                 rr.Mesh3D(
                     vertex_positions=mesh.vertices,
                     indices=mesh.faces,
                     vertex_normals=mesh.vertex_normals,
-                    vertex_colors=mesh.visual.vertex_colors,
+                    vertex_colors=mesh.visual.vertex_colors
                 ),
                 timeless=True,
             )
