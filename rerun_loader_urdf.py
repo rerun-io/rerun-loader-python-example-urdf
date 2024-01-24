@@ -77,23 +77,22 @@ class URDFLogger:
         if visual.origin is not None and visual.origin.rpy is not None:
             transform[:3, :3] = st.Rotation.from_euler("xyz", visual.origin.rpy).as_matrix()
 
-        mesh = mesh_path = mesh_scale = None
         if isinstance(visual.geometry, urdf_parser.Mesh):
             resolved_path = resolve_ros_path(visual.geometry.filename)
             mesh_scale = visual.geometry.scale
-            tmp_dir = tempfile.mkdtemp()
-            tmp_mesh = trimesh.load_mesh(resolved_path)
-            tmp_mesh.export(os.path.join(tmp_dir, "mesh.glb"))
-            mesh_path = os.path.join(tmp_dir, "mesh.glb")
+            mesh_or_scene = trimesh.load_mesh(resolved_path)
+            if mesh_scale is not None:
+                transform[:3, :3] *= mesh_scale
+            # transform[:3, :3] *= 0.001
         elif isinstance(visual.geometry, urdf_parser.Box):
-            mesh = trimesh.creation.box(extents=visual.geometry.size)
+            mesh_or_scene = trimesh.creation.box(extents=visual.geometry.size)
         elif isinstance(visual.geometry, urdf_parser.Cylinder):
-            mesh = trimesh.creation.cylinder(
+            mesh_or_scene = trimesh.creation.cylinder(
                 radius=visual.geometry.radius,
                 height=visual.geometry.length,
             )
         elif isinstance(visual.geometry, urdf_parser.Sphere):
-            mesh = trimesh.creation.icosphere(
+            mesh_or_scene = trimesh.creation.icosphere(
                 radius=visual.geometry.radius,
             )
         else:
@@ -101,39 +100,65 @@ class URDFLogger:
                 "",
                 rr.TextLog("Unsupported geometry type: " + str(type(visual.geometry))),
             )
-            mesh = trimesh.Trimesh()
+            mesh_or_scene = trimesh.Trimesh()
 
-        if mesh is not None:
-            mesh.visual = trimesh.visual.ColorVisuals()
-            if material is not None and material.color is not None and mesh.visual is not None:
-                mesh.visual.vertex_colors = material.color.rgba
+        mesh_or_scene.apply_transform(transform)
 
-            # TODO support material with texture
-
-            mesh.apply_transform(transform)
-            rr.log(
-                entity_path,
-                rr.Mesh3D(
-                    vertex_positions=mesh.vertices,
-                    indices=mesh.faces,
-                    vertex_normals=mesh.vertex_normals,
-                    vertex_colors=mesh.visual.vertex_colors,
-                ),
-                timeless=True,
-            )
+        if isinstance(mesh_or_scene, trimesh.Scene):
+            scene = mesh_or_scene
+            # use dump to apply scene graph transforms and get a list of transformed meshes
+            for i, mesh in enumerate(scene.dump()):  
+                # TODO apply texture to all meshes in scene
+                log_trimesh(entity_path, mesh)
         else:
-            if mesh_scale is None:
-                mesh_scale = [1, 1, 1]
-            rr.log(
-                entity_path,
-                rr.Asset3D(
-                    path=mesh_path,
-                    transform=rr.TranslationAndMat3x3(
-                        translation=transform[:3, 3], mat3x3=transform[:3, :3] @ np.diag(mesh_scale)
-                    ),
-                ),
-                timeless=True,
-            )
+            mesh = mesh_or_scene
+            if material is not None and material.color is not None:
+                mesh.visual = trimesh.visual.ColorVisuals()
+                mesh.visual.vertex_colors = material.color.rgba
+            # TODO material.texture is not supported
+            log_trimesh(entity_path, mesh)
+
+
+def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
+    vertex_colors = mesh_material = vertex_texcoords = None
+
+    if isinstance(mesh.visual, trimesh.visual.color.ColorVisuals):
+        vertex_colors = mesh.visual.vertex_colors
+    elif isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
+        albedo_texture = mesh.visual.material.baseColorTexture
+        if len(np.asarray(albedo_texture).shape) == 2:
+            # If the texture is grayscale, we need to convert it to RGB.
+            albedo_texture = np.stack([albedo_texture] * 3, axis=-1)
+        mesh_material = rr.Material(albedo_texture=albedo_texture)
+        vertex_texcoords = mesh.visual.uv
+        # Trimesh uses the OpenGL convention for UV coordinates, so we need to flip the V coordinate
+        # since Rerun uses the Vulkan/Metal/DX12/WebGPU convention.
+        vertex_texcoords[:, 1] = 1.0 - vertex_texcoords[:, 1]
+    else:
+        # Neither simple color nor texture, so we'll try to retrieve vertex colors via trimesh.
+        try:
+            colors = mesh.visual.to_color().vertex_colors
+            if len(colors) == 4:
+                # If trimesh gives us a single vertex color for the entire mesh, we can interpret that
+                # as an albedo factor for the whole primitive.
+                mesh_material = Material(albedo_factor=np.array(colors))
+            else:
+                vertex_colors = colors
+        except Exception:
+            pass
+
+    rr.log(
+        entity_path,
+        rr.Mesh3D(
+            vertex_positions=mesh.vertices,
+            indices=mesh.faces,
+            vertex_normals=mesh.vertex_normals,
+            vertex_colors=vertex_colors,
+            mesh_material=mesh_material,
+            vertex_texcoords=vertex_texcoords,
+        ),
+        timeless=True,
+    )
 
 
 def resolve_ros_path(path: str) -> str:
