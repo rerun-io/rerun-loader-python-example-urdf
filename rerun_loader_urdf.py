@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 import pathlib
-import tempfile
 from typing import Optional
 
 import numpy as np
@@ -38,13 +37,13 @@ class URDFLogger:
         """Log a URDF file to Rerun."""
         rr.log("", rr.ViewCoordinates.RIGHT_HAND_Z_UP, timeless=True)  # default ROS convention
 
-        for link in self.urdf.links:
-            entity_path = self.link_entity_path(link)
-            self.log_link(entity_path, link)
-
         for joint in self.urdf.joints:
             entity_path = self.joint_entity_path(joint)
             self.log_joint(entity_path, joint)
+
+        for link in self.urdf.links:
+            entity_path = self.link_entity_path(link)
+            self.log_link(entity_path, link)
 
     def log_link(self, entity_path: str, link: urdf_parser.Link) -> None:
         # create one mesh out of all visuals
@@ -107,7 +106,7 @@ class URDFLogger:
         if isinstance(mesh_or_scene, trimesh.Scene):
             scene = mesh_or_scene
             # use dump to apply scene graph transforms and get a list of transformed meshes
-            for i, mesh in enumerate(scene.dump()):  
+            for i, mesh in enumerate(scene.dump()):
                 # TODO apply texture to all meshes in scene
                 log_trimesh(entity_path, mesh)
         else:
