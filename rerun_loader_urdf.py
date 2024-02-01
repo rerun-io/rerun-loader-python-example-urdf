@@ -7,6 +7,7 @@ import os
 import pathlib
 from typing import Optional
 
+from PIL import Image
 import numpy as np
 import rerun as rr  # pip install rerun-sdk
 import scipy.spatial.transform as st
@@ -107,14 +108,23 @@ class URDFLogger:
             scene = mesh_or_scene
             # use dump to apply scene graph transforms and get a list of transformed meshes
             for i, mesh in enumerate(scene.dump()):
-                # TODO apply texture to all meshes in scene
+                if material is not None:
+                    if material.color is not None:
+                        mesh.visual = trimesh.visual.ColorVisuals()
+                        mesh.visual.vertex_colors = material.color.rgba
+                    elif material.texture is not None:
+                        texture_path = resolve_ros_path(material.texture.filename)
+                        mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
                 log_trimesh(entity_path, mesh)
         else:
             mesh = mesh_or_scene
-            if material is not None and material.color is not None:
-                mesh.visual = trimesh.visual.ColorVisuals()
-                mesh.visual.vertex_colors = material.color.rgba
-            # TODO material.texture is not supported
+            if material is not None:
+                if material.color is not None:
+                    mesh.visual = trimesh.visual.ColorVisuals()
+                    mesh.visual.vertex_colors = material.color.rgba
+                elif material.texture is not None:
+                    texture_path = resolve_ros_path(material.texture.filename)
+                    mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
             log_trimesh(entity_path, mesh)
 
 
