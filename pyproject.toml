@@ -1,0 +1,26 @@
+[tool.ruff]
+ignore = [
+  "D1",
+  "D202",
+  "D107",
+  "D203",
+  "D212",
+  "D401",
+  "D402",
+  "D415",
+  "D416",
+  "E501",
+  "TID252",
+  "UP007",
+]
+
+line-length = 120
+select = [
+  "D",   # pydocstyle codes https://www.pydocstyle.org/en/latest/error_codes.html
+  "E",   # pycodestyle error codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
+  "F",   # Flake8 error codes https://flake8.pycqa.org/en/latest/user/error-codes.html
+  "I",   # Isort
+  "TID", # flake8-tidy-imports
+  "W",   # pycodestyle warning codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
+  "UP",  # pyupgrade (ensures idomatic code for supported python version)
+]
