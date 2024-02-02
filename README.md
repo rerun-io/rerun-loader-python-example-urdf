@@ -6,7 +6,7 @@ https://github.com/rerun-io/rerun-loader-python-example-urdf/assets/9785832/5165
 
 External data loaders are executables that are available to the Rerun Viewer via the `PATH` variable, with a name that starts with `rerun-loader-`.
 
-This example is written in Python, and uses [urdf_parser_py](https://github.com/ros/urdf_parser_py/tree/ros2) to read the files. The events are then logged to Rerun.
+This example is written in Python, and uses [urdf_parser_py](https://github.com/ros/urdf_parser_py/tree/ros2) to read the files.
 
 ## Installing the Rerun Viewer
 The simplest option is just (*this example currently requires a prerelease*):
