@@ -83,7 +83,6 @@ class URDFLogger:
             mesh_or_scene = trimesh.load_mesh(resolved_path)
             if mesh_scale is not None:
                 transform[:3, :3] *= mesh_scale
-            # transform[:3, :3] *= 0.001
         elif isinstance(visual.geometry, urdf_parser.Box):
             mesh_or_scene = trimesh.creation.box(extents=visual.geometry.size)
         elif isinstance(visual.geometry, urdf_parser.Cylinder):
@@ -129,7 +128,7 @@ class URDFLogger:
 
 
 def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
-    vertex_colors = mesh_material = vertex_texcoords = None
+    vertex_colors = albedo_texture = vertex_texcoords = None
 
     if isinstance(mesh.visual, trimesh.visual.color.ColorVisuals):
         vertex_colors = mesh.visual.vertex_colors
@@ -138,7 +137,6 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
         if len(np.asarray(albedo_texture).shape) == 2:
             # If the texture is grayscale, we need to convert it to RGB.
             albedo_texture = np.stack([albedo_texture] * 3, axis=-1)
-        mesh_material = rr.Material(albedo_texture=albedo_texture)
         vertex_texcoords = mesh.visual.uv
         # Trimesh uses the OpenGL convention for UV coordinates, so we need to flip the V coordinate
         # since Rerun uses the Vulkan/Metal/DX12/WebGPU convention.
@@ -163,7 +161,7 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
             indices=mesh.faces,
             vertex_normals=mesh.vertex_normals,
             vertex_colors=vertex_colors,
-            mesh_material=mesh_material,
+            albedo_texture=albedo_texture,
             vertex_texcoords=vertex_texcoords,
         ),
         timeless=True,
