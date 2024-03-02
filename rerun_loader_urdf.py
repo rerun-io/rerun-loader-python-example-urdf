@@ -12,6 +12,7 @@ import numpy as np
 import rerun as rr  # pip install rerun-sdk
 import scipy.spatial.transform as st
 import trimesh
+import trimesh.visual
 from urdf_parser_py import urdf as urdf_parser
 
 
@@ -129,32 +130,28 @@ class URDFLogger:
 
 
 def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
-    vertex_colors = mesh_material = vertex_texcoords = None
+    mesh_material = vertex_colors = albedo_texture = vertex_texcoords = None
 
-    if isinstance(mesh.visual, trimesh.visual.color.ColorVisuals):
+    if isinstance(mesh.visual, (trimesh.visual.color.ColorVisuals)):
         vertex_colors = mesh.visual.vertex_colors
     elif isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
-        albedo_texture = mesh.visual.material.baseColorTexture
-        if len(np.asarray(albedo_texture).shape) == 2:
-            # If the texture is grayscale, we need to convert it to RGB.
-            albedo_texture = np.stack([albedo_texture] * 3, axis=-1)
-        mesh_material = rr.Material(albedo_texture=albedo_texture)
-        vertex_texcoords = mesh.visual.uv
-        # Trimesh uses the OpenGL convention for UV coordinates, so we need to flip the V coordinate
-        # since Rerun uses the Vulkan/Metal/DX12/WebGPU convention.
-        vertex_texcoords[:, 1] = 1.0 - vertex_texcoords[:, 1]
-    else:
-        # Neither simple color nor texture, so we'll try to retrieve vertex colors via trimesh.
-        try:
-            colors = mesh.visual.to_color().vertex_colors
-            if len(colors) == 4:
-                # If trimesh gives us a single vertex color for the entire mesh, we can interpret that
-                # as an albedo factor for the whole primitive.
-                mesh_material = Material(albedo_factor=np.array(colors))
+        trimesh_material = mesh.visual.material
+
+        if mesh.visual.uv is not None:
+            vertex_texcoords = mesh.visual.uv
+            # Trimesh uses the OpenGL convention for UV coordinates, so we need to flip the V coordinate
+            # since Rerun uses the Vulkan/Metal/DX12/WebGPU convention.
+            vertex_texcoords[:, 1] = 1.0 - vertex_texcoords[:, 1]
+
+        if isinstance(trimesh_material, trimesh.visual.material.PBRMaterial):
+            if trimesh_material.baseColorTexture is not None:
+                albedo_texture = pil_image_to_albedo_texture(trimesh_material.baseColorTexture)
+
+        elif isinstance(trimesh_material, trimesh.visual.material.SimpleMaterial):
+            if trimesh_material.image is not None:
+                albedo_texture = pil_image_to_albedo_texture(trimesh_material.image)
             else:
-                vertex_colors = colors
-        except Exception:
-            pass
+                vertex_colors = mesh.visual.to_color().vertex_colors
 
     rr.log(
         entity_path,
@@ -163,7 +160,7 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
             indices=mesh.faces,
             vertex_normals=mesh.vertex_normals,
             vertex_colors=vertex_colors,
-            mesh_material=mesh_material,
+            albedo_texture=albedo_texture,
             vertex_texcoords=vertex_texcoords,
         ),
         timeless=True,
@@ -204,7 +201,7 @@ def resolve_ros2_package(package_name: str) -> Optional[str]:
         return None
 
 
-def resolve_ros1_package(package_name: str) -> str:
+def resolve_ros1_package(package_name: str) -> Optional[str]:
     try:
         import rospkg
 
@@ -214,6 +211,17 @@ def resolve_ros1_package(package_name: str) -> str:
             return None
     except ImportError:
         return None
+
+
+def pil_image_to_albedo_texture(image: Image.Image) -> np.ndarray:
+    """Convert a PIL image to an albedo texture."""
+    albedo_texture = np.asarray(image)
+    if albedo_texture.ndim == 2:
+        # If the texture is grayscale, we need to convert it to RGB since 
+        # Rerun expects a 3-channel texture.
+        # See: https://github.com/rerun-io/rerun/issues/4878 
+        albedo_texture = np.stack([albedo_texture] * 3, axis=-1)
+    return albedo_texture
 
 
 # The Rerun Viewer will always pass these two pieces of information:
