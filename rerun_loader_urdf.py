@@ -254,6 +254,7 @@ def main() -> None:
         """
     )
     parser.add_argument("filepath", type=str)
+    parser.add_argument("--application-id", type=str, help="optional recommended application ID for the recording")
     parser.add_argument("--recording-id", type=str, help="optional recommended ID for the recording")
     parser.add_argument("--entity-path-prefix", type=str, help="optional prefix for all entity paths")
     parser.add_argument(
@@ -280,7 +281,7 @@ def main() -> None:
     if not is_file or not is_urdf_file:
         exit(rr.EXTERNAL_DATA_LOADER_INCOMPATIBLE_EXIT_CODE)
 
-    rr.init(args.filepath, recording_id=args.recording_id)
+    rr.init(args.application_id, recording_id=args.recording_id)
     # The most important part of this: log to standard output so the Rerun Viewer can ingest it!
     rr.stdout()
 
@@ -304,7 +305,7 @@ def set_time_from_args(args) -> None:
             timeline_name, time = parts
             rr.set_time_seconds(timeline_name, float(time))
 
-        for time_str in args.time:
+        for time_str in args.sequence:
             parts = time_str.split("=")
             if len(parts) != 2:
                 continue
