@@ -303,7 +303,7 @@ def set_time_from_args(args) -> None:
             if len(parts) != 2:
                 continue
             timeline_name, time = parts
-            rr.set_time_seconds(timeline_name, float(time))
+            rr.set_time_nanos(timeline_name, int(time))
 
         for time_str in args.sequence:
             parts = time_str.split("=")
@@ -311,6 +311,7 @@ def set_time_from_args(args) -> None:
                 continue
             timeline_name, time = parts
             rr.set_time_sequence(timeline_name, int(time))
+    rr.log("bla", rr.TextLog("Setting time from args " + str(args)))
 
 
 if __name__ == "__main__":
