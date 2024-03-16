@@ -254,6 +254,8 @@ def main() -> None:
         """
     )
     parser.add_argument("filepath", type=str)
+
+    parser.add_argument("--application-id", type=str, help="optional recommended ID for the application")
     parser.add_argument("--recording-id", type=str, help="optional recommended ID for the recording")
     parser.add_argument("--entity-path-prefix", type=str, help="optional prefix for all entity paths")
     parser.add_argument(
@@ -280,7 +282,12 @@ def main() -> None:
     if not is_file or not is_urdf_file:
         exit(rr.EXTERNAL_DATA_LOADER_INCOMPATIBLE_EXIT_CODE)
 
-    rr.init(args.filepath, recording_id=args.recording_id)
+    if args.application_id is not None:
+        app_id = args.application_id
+    else:
+        app_id = args.filepath
+
+    rr.init(app_id, recording_id=args.recording_id)
     # The most important part of this: log to standard output so the Rerun Viewer can ingest it!
     rr.stdout()
 
