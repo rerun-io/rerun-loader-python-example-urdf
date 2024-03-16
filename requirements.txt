@@ -6,4 +6,4 @@ pyyaml  # dependency for urdf_parser_py (see package.xml)
 lxml  # dependency for urdf_parser_py (see package.xml)
 pillow
 trimesh
-rerun-sdk>=0.13
+rerun-sdk>=0.15.0a
