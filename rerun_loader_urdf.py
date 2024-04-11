@@ -123,7 +123,7 @@ class URDFLogger:
                     elif material.texture is not None:
                         texture_path = resolve_ros_path(material.texture.filename)
                         mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
-                log_trimesh(entity_path, mesh)
+                log_trimesh(entity_path + f"/{i}", mesh)
         else:
             mesh = mesh_or_scene
             if material is not None:
@@ -137,7 +137,7 @@ class URDFLogger:
 
 
 def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
-    mesh_material = vertex_colors = albedo_texture = vertex_texcoords = None
+    vertex_colors = albedo_texture = vertex_texcoords = None
 
     if isinstance(mesh.visual, (trimesh.visual.color.ColorVisuals)):
         vertex_colors = mesh.visual.vertex_colors
