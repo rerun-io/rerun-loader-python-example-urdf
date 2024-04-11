@@ -115,7 +115,7 @@ class URDFLogger:
         if isinstance(mesh_or_scene, trimesh.Scene):
             scene = mesh_or_scene
             # use dump to apply scene graph transforms and get a list of transformed meshes
-            for i, mesh in enumerate(scene.dump()):
+            for i, mesh in enumerate(scene_to_trimeshes(scene)):
                 if material is not None:
                     if material.color is not None:
                         mesh.visual = trimesh.visual.ColorVisuals()
@@ -134,6 +134,23 @@ class URDFLogger:
                     texture_path = resolve_ros_path(material.texture.filename)
                     mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
             log_trimesh(entity_path, mesh)
+
+
+def scene_to_trimeshes(scene: trimesh.Scene) -> list[trimesh.Trimesh]:
+    """
+    Convert a trimesh.Scene to a list of trimesh.Trimesh.
+
+    Skips objects that are not an instance of trimesh.Trimesh.
+    """
+    trimeshes = []
+    scene_dump = scene.dump()
+    geometries = [scene_dump] if not isinstance(scene_dump, list) else scene_dump
+    for geometry in geometries:
+        if isinstance(geometry, trimesh.Trimesh):
+            trimeshes.append(geometry)
+        elif isinstance(geometry, trimesh.Scene):
+            trimeshes.extend(scene_to_trimeshes(geometry))
+    return trimeshes
 
 
 def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
@@ -174,10 +191,10 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
     )
 
 
-def resolve_ros_path(path: str) -> str:
+def resolve_ros_path(path_str: str) -> str:
     """Resolve a ROS path to an absolute path."""
-    if path.startswith("package://"):
-        path = pathlib.Path(path)
+    if path_str.startswith("package://"):
+        path = pathlib.Path(path_str)
         package_name = path.parts[1]
         relative_path = pathlib.Path(*path.parts[2:])
 
@@ -190,10 +207,10 @@ def resolve_ros_path(path: str) -> str:
             )
 
         return str(package_path / relative_path)
-    elif str(path).startswith("file://"):
-        return path[len("file://") :]
+    elif path_str.startswith("file://"):
+        return path_str[len("file://") :]
     else:
-        return path
+        return path_str
 
 
 def resolve_ros2_package(package_name: str) -> Optional[str]:
