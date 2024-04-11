@@ -114,7 +114,7 @@ class URDFLogger:
                     elif material.texture is not None:
                         texture_path = resolve_ros_path(material.texture.filename)
                         mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
-                log_trimesh(entity_path, mesh)
+                log_trimesh(entity_path+f"/{i}", mesh)
         else:
             mesh = mesh_or_scene
             if material is not None:
@@ -140,7 +140,8 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
         vertex_texcoords = mesh.visual.uv
         # Trimesh uses the OpenGL convention for UV coordinates, so we need to flip the V coordinate
         # since Rerun uses the Vulkan/Metal/DX12/WebGPU convention.
-        vertex_texcoords[:, 1] = 1.0 - vertex_texcoords[:, 1]
+        if vertex_texcoords is not None:
+            vertex_texcoords[:, 1] = 1.0 - vertex_texcoords[:, 1]
     else:
         # Neither simple color nor texture, so we'll try to retrieve vertex colors via trimesh.
         try:
