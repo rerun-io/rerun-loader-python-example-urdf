@@ -139,7 +139,7 @@ class URDFLogger:
 def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
     vertex_colors = albedo_texture = vertex_texcoords = None
 
-    if isinstance(mesh.visual, (trimesh.visual.color.ColorVisuals)):
+    if isinstance(mesh.visual, trimesh.visual.color.ColorVisuals):
         vertex_colors = mesh.visual.vertex_colors
     elif isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
         trimesh_material = mesh.visual.material
