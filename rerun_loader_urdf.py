@@ -92,7 +92,6 @@ class URDFLogger:
             mesh_or_scene = trimesh.load_mesh(resolved_path)
             if mesh_scale is not None:
                 transform[:3, :3] *= mesh_scale
-            # transform[:3, :3] *= 0.001
         elif isinstance(visual.geometry, urdf_parser.Box):
             mesh_or_scene = trimesh.creation.box(extents=visual.geometry.size)
         elif isinstance(visual.geometry, urdf_parser.Cylinder):
