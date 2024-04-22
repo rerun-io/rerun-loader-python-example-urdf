@@ -14,14 +14,20 @@ import scipy.spatial.transform as st
 import trimesh
 import trimesh.visual
 from PIL import Image
+import xacro
 from urdf_parser_py import urdf as urdf_parser
-
 
 class URDFLogger:
     """Class to log a URDF to Rerun."""
 
     def __init__(self, filepath: str, entity_path_prefix: Optional[str]) -> None:
-        self.urdf = urdf_parser.URDF.from_xml_file(filepath)
+        if filepath.endswith("xacro"):
+            xacro_doc = xacro.parse(open(filepath))
+            xacro.process_doc(xacro_doc)
+            self.urdf = urdf_parser.URDF.from_xml_string(xacro_doc.toxml())
+        else:
+            self.urdf = urdf_parser.URDF.from_xml_file(filepath)
+
         self.entity_path_prefix = entity_path_prefix
         self.mat_name_to_mat = {mat.name: mat for mat in self.urdf.materials}
 
@@ -297,7 +303,8 @@ def main() -> None:
     args = parser.parse_args()
 
     is_file = os.path.isfile(args.filepath)
-    is_urdf_file = ".urdf" in args.filepath
+    is_urdf_file = any(ext in args.filepath for ext in [".urdf", ".xacro"])
+
 
     # Inform the Rerun Viewer that we do not support that kind of file.
     if not is_file or not is_urdf_file:
