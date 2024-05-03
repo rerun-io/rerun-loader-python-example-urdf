@@ -8,7 +8,7 @@ setup(
     name="rerun-loader-python-example-urdf",
     version="0.1.0",
     py_modules=["rerun_loader_urdf"],
-    python_requires=">=3.8, <3.12",
+    python_requires=">=3.8, <3.13",
     install_requires=requirements,
     entry_points={
         "console_scripts": [
