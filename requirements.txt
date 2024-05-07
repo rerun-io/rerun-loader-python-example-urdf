@@ -1,7 +1,7 @@
 numpy
 scipy
 pycollada  # to load .dae files
-urdfdom-py @ git+https://github.com/ros/urdf_parser_py.git@1.2.1
+urdfdom-py @ git+https://github.com/ros/urdf_parser_py.git@ros2
 pyyaml  # dependency for urdf_parser_py (see package.xml)
 lxml  # dependency for urdf_parser_py (see package.xml)
 pillow
