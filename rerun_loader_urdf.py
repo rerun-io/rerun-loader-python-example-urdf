@@ -116,7 +116,7 @@ class URDFLogger:
             scene = mesh_or_scene
             # use dump to apply scene graph transforms and get a list of transformed meshes
             for i, mesh in enumerate(scene_to_trimeshes(scene)):
-                if material is not None:
+                if material is not None and not isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
                     if material.color is not None:
                         mesh.visual = trimesh.visual.ColorVisuals()
                         mesh.visual.vertex_colors = material.color.rgba
@@ -126,7 +126,7 @@ class URDFLogger:
                 log_trimesh(entity_path + f"/{i}", mesh)
         else:
             mesh = mesh_or_scene
-            if material is not None:
+            if material is not None and not isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
                 if material.color is not None:
                     mesh.visual = trimesh.visual.ColorVisuals()
                     mesh.visual.vertex_colors = material.color.rgba
@@ -170,7 +170,8 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
         if isinstance(trimesh_material, trimesh.visual.material.PBRMaterial):
             if trimesh_material.baseColorTexture is not None:
                 albedo_texture = pil_image_to_albedo_texture(trimesh_material.baseColorTexture)
-
+            elif trimesh_material.baseColorFactor is not None:
+                vertex_colors = trimesh_material.baseColorFactor
         elif isinstance(trimesh_material, trimesh.visual.material.SimpleMaterial):
             if trimesh_material.image is not None:
                 albedo_texture = pil_image_to_albedo_texture(trimesh_material.image)
