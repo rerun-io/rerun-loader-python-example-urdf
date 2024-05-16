@@ -1,9 +1,9 @@
-numpy
-scipy
-pycollada  # to load .dae files
-urdfdom-py @ git+https://github.com/ros/urdf_parser_py.git@ros2
-pyyaml  # dependency for urdf_parser_py (see package.xml)
 lxml  # dependency for urdf_parser_py (see package.xml)
+numpy
 pillow
+pycollada  # to load .dae files
+pyyaml  # dependency for urdf_parser_py (see package.xml)
+rerun-sdk==0.16.0-rc.4 # TODO(emilk): >=0.16.0
+scipy
 trimesh
-rerun-sdk>=0.15.0
+urdfdom-py @ git+https://github.com/ros/urdf_parser_py.git@ros2
