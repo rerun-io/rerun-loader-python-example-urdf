@@ -3,7 +3,7 @@ numpy
 pillow
 pycollada  # to load .dae files
 pyyaml  # dependency for urdf_parser_py (see package.xml)
-rerun-sdk==0.16.0-rc.4 # TODO(emilk): >=0.16.0
+rerun-sdk>=0.16.0
 scipy
 trimesh
 urdfdom-py @ git+https://github.com/ros/urdf_parser_py.git@ros2
