@@ -9,9 +9,9 @@ External data loaders are executables that are available to the Rerun Viewer via
 This example is written in Python, and uses [urdf_parser_py](https://github.com/ros/urdf_parser_py/tree/ros2) to read the files. ROS package-relative paths support both ROS 1 and ROS 2-based resolving.
 
 ## Installing the Rerun Viewer
-The simplest option is just (*this example currently requires a prerelease*):
+The simplest option is just:
 ```bash
-pip install --pre -f https://build.rerun.io/commit/1dad7c8/wheels --upgrade rerun-sdk
+pip install rerun-sdk==0.16.0
 ```
 Read [this guide](https://www.rerun.io/docs/getting-started/installing-viewer) for more options.
 
@@ -35,8 +35,8 @@ On unix-like systems `--python $(which python)` will use the currently active Py
 
 Make sure it's installed by running it from your terminal, which should output an error and usage description:
 ```bash
-rerun-loader-urdf
-usage: rerun-loader-urdf [-h] [--recording-id RECORDING_ID] filepath
+> rerun-loader-urdf
+usage: rerun-loader-urdf [-h] [--application-id APPLICATION_ID] [--recording-id RECORDING_ID] [--entity-path-prefix ENTITY_PATH_PREFIX] [--timeless] [--time TIME] [--sequence SEQUENCE] filepath
 rerun-loader-urdf: error: the following arguments are required: filepath
 ```
 
