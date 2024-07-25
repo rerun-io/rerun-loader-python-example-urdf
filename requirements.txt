@@ -7,3 +7,4 @@ rerun-sdk>=0.16.0
 scipy
 trimesh
 urdfdom-py @ git+https://github.com/ros/urdf_parser_py.git@ros2
+xacro
