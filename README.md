@@ -11,7 +11,7 @@ This example is written in Python, and uses [urdf_parser_py](https://github.com/
 ## Installing the Rerun Viewer
 The simplest option is just:
 ```bash
-pip install rerun-sdk==0.16.0
+pip install rerun-sdk==0.20.3
 ```
 Read [this guide](https://www.rerun.io/docs/getting-started/installing-viewer) for more options.
 
