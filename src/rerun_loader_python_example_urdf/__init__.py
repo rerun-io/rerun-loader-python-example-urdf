@@ -17,6 +17,7 @@ from PIL import Image
 import xacro
 from urdf_parser_py import urdf as urdf_parser
 
+
 class URDFLogger:
     """Class to log a URDF to Rerun."""
 
@@ -305,7 +306,6 @@ def main() -> None:
     is_file = os.path.isfile(args.filepath)
     is_urdf_file = any(ext in args.filepath for ext in [".urdf", ".xacro"])
 
-
     # Inform the Rerun Viewer that we do not support that kind of file.
     if not is_file or not is_urdf_file:
         exit(rr.EXTERNAL_DATA_LOADER_INCOMPATIBLE_EXIT_CODE)
@@ -331,7 +331,7 @@ def main() -> None:
 
 
 def set_time_from_args(args) -> None:
-    if not args.timeless and args.time is not None:
+    if not args.static and args.time is not None:
         for time_str in args.time:
             parts = time_str.split("=")
             if len(parts) != 2:
