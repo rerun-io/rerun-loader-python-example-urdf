@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Example of an executable data-loader plugin for the Rerun Viewer for URDF files."""
+
 from __future__ import annotations
 
 import argparse
@@ -188,7 +189,7 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
             albedo_texture=albedo_texture,
             vertex_texcoords=vertex_texcoords,
         ),
-        timeless=True,
+        static=True,
     )
 
 
@@ -272,11 +273,12 @@ def main() -> None:
     )
     parser.add_argument("filepath", type=str)
 
-    parser.add_argument("--application-id", type=str, help="optional recommended ID for the application")
+    parser.add_argument("--opened-application-id", type=str, help="optional recommended ID for the application")
     parser.add_argument("--recording-id", type=str, help="optional recommended ID for the recording")
+    parser.add_argument("--opened-recording-id", type=str, help="optional recommended ID for the recording")
     parser.add_argument("--entity-path-prefix", type=str, help="optional prefix for all entity paths")
     parser.add_argument(
-        "--timeless", action="store_true", default=False, help="optionally mark data to be logged as timeless"
+        "--static", action="store_true", default=False, help="optionally mark data to be logged as static"
     )
     parser.add_argument(
         "--time",
@@ -299,8 +301,8 @@ def main() -> None:
     if not is_file or not is_urdf_file:
         exit(rr.EXTERNAL_DATA_LOADER_INCOMPATIBLE_EXIT_CODE)
 
-    if args.application_id is not None:
-        app_id = args.application_id
+    if args.opened_application_id is not None:
+        app_id = args.opened_application_id
     else:
         app_id = args.filepath
 
