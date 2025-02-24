@@ -1,12 +1,12 @@
 [project]
 name = "rerun-loader-python-example-urdf"
-version = "0.1.0"
+version = "0.1.1"
 description = "An example data-loader plugin that lets you view URDF files in Rerun"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "lxml>=5.3.1",
-  "numpy>=2.2.3",
+  "numpy>=1.23",
   "pillow>=11.1.0",
   "pycollada>=0.9",
   "pyyaml>=6.0.2",
@@ -14,6 +14,7 @@ dependencies = [
   "scipy>=1.15.2",
   "trimesh>=4.6.2",
   "urdfdom-py",
+  "xacro>=1.13.3",
 ]
 
 [project.scripts]
@@ -40,8 +41,6 @@ lint.ignore = [
   "TID252",
   "UP007",
 ]
-
-line-length = 120
 lint.select = [
   "D",   # pydocstyle codes https://www.pydocstyle.org/en/latest/error_codes.html
   "E",   # pycodestyle error codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
@@ -51,6 +50,8 @@ lint.select = [
   "W",   # pycodestyle warning codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
   "UP",  # pyupgrade (ensures idomatic code for supported python version)
 ]
+
+line-length = 120
 
 [tool.uv.sources]
 urdfdom-py = { git = "https://github.com/ros/urdf_parser_py.git", rev = "ros2" }

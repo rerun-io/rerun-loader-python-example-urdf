@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.11"
 
 [[package]]
@@ -272,12 +273,13 @@ dependencies = [
     { name = "scipy" },
     { name = "trimesh" },
     { name = "urdfdom-py" },
+    { name = "xacro" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "lxml", specifier = ">=5.3.1" },
-    { name = "numpy", specifier = ">=2.2.3" },
+    { name = "numpy", specifier = ">=1.23" },
     { name = "pillow", specifier = ">=11.1.0" },
     { name = "pycollada", specifier = ">=0.9" },
     { name = "pyyaml", specifier = ">=6.0.2" },
@@ -285,6 +287,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.15.2" },
     { name = "trimesh", specifier = ">=4.6.2" },
     { name = "urdfdom-py", git = "https://github.com/ros/urdf_parser_py.git?rev=ros2" },
+    { name = "xacro", specifier = ">=1.13.3" },
 ]
 
 [[package]]
@@ -399,3 +402,9 @@ source = { git = "https://github.com/ros/urdf_parser_py.git?rev=ros2#492223ce830
 dependencies = [
     { name = "setuptools" },
 ]
+
+[[package]]
+name = "xacro"
+version = "1.13.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/02/20/aa6578e060abe1a703a808883f7d19f9083e7cdc5c72148e3fae01488f28/xacro-1.13.3.tar.gz", hash = "sha256:a3d27ac2860cb121d8f0049fce3322cdaa3c8a66f6d4d1031008776b5e9f5e44", size = 24638 }
