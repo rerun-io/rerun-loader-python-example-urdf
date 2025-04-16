@@ -1,7 +1,8 @@
 # URDF -> Rerun plugin
 
 This is an example data-loader plugin that lets you view URDF files in the [Rerun](https://github.com/rerun-io/rerun/) Viewer.
-It uses the [external data loader mechanism](https://www.rerun.io/docs/howto/open-any-file#external-dataloaders) to add this capability to the viewer without modifying the viewer itself.
+It uses the [external data loader mechanism](https://rerun.io/docs/reference/data-loaders/overview#external-dataloaders) to add this capability to the viewer without modifying the viewer itself.
+
 
 <https://github.com/rerun-io/rerun-loader-python-example-urdf/assets/9785832/51659bee-330d-4058-980d-414d2e4e63bb>
 
