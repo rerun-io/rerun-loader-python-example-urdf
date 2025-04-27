@@ -283,6 +283,7 @@ def main() -> None:
     parser.add_argument("filepath", type=str)
 
     parser.add_argument("--application-id", type=str, help="optional recommended ID for the application")
+    parser.add_argument("--opened-application-id", type=str, help="optional recommended ID for the application")
     parser.add_argument("--recording-id", type=str, help="optional recommended ID for the recording")
     parser.add_argument("--opened-recording-id", type=str, help="optional recommended ID for the recording")
     parser.add_argument("--entity-path-prefix", type=str, help="optional prefix for all entity paths")
