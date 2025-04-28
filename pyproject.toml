@@ -1,22 +1,36 @@
 [project]
 name = "rerun-loader-urdf"
-version = "0.1.0"
-requires-python = ">=3.9"
+description = "Example of an executable data-loader plugin for the Rerun Viewer for URDF files."
+version = "0.2.0"
+requires-python = ">=3.10"
 dependencies = [
-  "urdfdom-py @ git+https://github.com/ros/urdf_parser_py.git@1.2.1",
-  "rerun-sdk>=0.14.1",
+  "urdfdom-py",
+  "rerun-sdk>=0.23.1",
   "numpy>=1.26.4",
   "trimesh>=4.2.2",
   "pyyaml>=6.0.1",
   "lxml>=5.1.0",
   "pillow>=10.2.0",
   "pycollada>=0.8",
-  "scipy>=1.12.0",
+  "scipy>=1.15.2",
+  "xacro>=1.13.3",
 ]
 
+[project.scripts]
+rerun-loader-urdf = "rerun_loader_urdf:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+urdfdom-py = { git = "https://github.com/ros/urdf_parser_py.git", rev = "ros2" }
 
 [tool.ruff]
-lint.ignore = [
+line-length = 120
+
+[tool.ruff.lint]
+ignore = [
   "D1",
   "D202",
   "D107",
@@ -30,7 +44,8 @@ lint.ignore = [
   "TID252",
   "UP007",
 ]
-lint.select = [
+
+select = [
   "D",   # pydocstyle codes https://www.pydocstyle.org/en/latest/error_codes.html
   "E",   # pycodestyle error codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
   "F",   # Flake8 error codes https://flake8.pycqa.org/en/latest/user/error-codes.html
@@ -39,8 +54,3 @@ lint.select = [
   "W",   # pycodestyle warning codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
   "UP",  # pyupgrade (ensures idomatic code for supported python version)
 ]
-
-line-length = 120
-
-[tool.uv.sources]
-urdfdom-py = { git = "https://github.com/ros/urdf_parser_py.git", rev = "ros2" }
