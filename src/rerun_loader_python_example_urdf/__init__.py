@@ -41,7 +41,9 @@ class URDFLogger:
     def joint_entity_path(self, joint: urdf_parser.Joint) -> str:
         """Return the entity path for the URDF joint."""
         root_name = self.urdf.get_root()
-        joint_names = self.urdf.get_chain(root_name, joint.child)[0::2]  # skip the links
+        joint_names = self.urdf.get_chain(root_name, joint.child)[
+            0::2
+        ]  # skip the links
         return self.add_entity_path_prefix("/".join(joint_names))
 
     def add_entity_path_prefix(self, entity_path: str) -> str:
@@ -92,7 +94,9 @@ class URDFLogger:
         if visual.origin is not None and visual.origin.xyz is not None:
             transform[:3, 3] = visual.origin.xyz
         if visual.origin is not None and visual.origin.rpy is not None:
-            transform[:3, :3] = st.Rotation.from_euler("xyz", visual.origin.rpy).as_matrix()
+            transform[:3, :3] = st.Rotation.from_euler(
+                "xyz", visual.origin.rpy
+            ).as_matrix()
 
         if isinstance(visual.geometry, urdf_parser.Mesh):
             resolved_path = resolve_ros_path(visual.geometry.filename)
@@ -126,23 +130,31 @@ class URDFLogger:
             scene = mesh_or_scene
             # use dump to apply scene graph transforms and get a list of transformed meshes
             for i, mesh in enumerate(scene_to_trimeshes(scene)):
-                if material is not None and not isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
+                if material is not None and not isinstance(
+                    mesh.visual, trimesh.visual.texture.TextureVisuals
+                ):
                     if material.color is not None:
                         mesh.visual = trimesh.visual.ColorVisuals()
                         mesh.visual.vertex_colors = material.color.rgba
                     elif material.texture is not None:
                         texture_path = resolve_ros_path(material.texture.filename)
-                        mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
+                        mesh.visual = trimesh.visual.texture.TextureVisuals(
+                            image=Image.open(texture_path)
+                        )
                 log_trimesh(entity_path + f"/{i}", mesh)
         else:
             mesh = mesh_or_scene
-            if material is not None and not isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
+            if material is not None and not isinstance(
+                mesh.visual, trimesh.visual.texture.TextureVisuals
+            ):
                 if material.color is not None:
                     mesh.visual = trimesh.visual.ColorVisuals()
                     mesh.visual.vertex_colors = material.color.rgba
                 elif material.texture is not None:
                     texture_path = resolve_ros_path(material.texture.filename)
-                    mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
+                    mesh.visual = trimesh.visual.texture.TextureVisuals(
+                        image=Image.open(texture_path)
+                    )
             log_trimesh(entity_path, mesh)
 
 
@@ -179,7 +191,9 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
 
         if isinstance(trimesh_material, trimesh.visual.material.PBRMaterial):
             if trimesh_material.baseColorTexture is not None:
-                albedo_texture = pil_image_to_albedo_texture(trimesh_material.baseColorTexture)
+                albedo_texture = pil_image_to_albedo_texture(
+                    trimesh_material.baseColorTexture
+                )
             elif trimesh_material.baseColorFactor is not None:
                 vertex_colors = trimesh_material.baseColorFactor
         elif isinstance(trimesh_material, trimesh.visual.material.SimpleMaterial):
@@ -209,7 +223,9 @@ def resolve_ros_path(path_str: str) -> str:
         package_name = path.parts[1]
         relative_path = pathlib.Path(*path.parts[2:])
 
-        package_path = resolve_ros1_package(package_name) or resolve_ros2_package(package_name)
+        package_path = resolve_ros1_package(package_name) or resolve_ros2_package(
+            package_name
+        )
 
         if package_path is None:
             raise ValueError(
@@ -288,7 +304,10 @@ def main() -> None:
     parser.add_argument("--opened-recording-id", type=str, help="optional recommended ID for the recording")
     parser.add_argument("--entity-path-prefix", type=str, help="optional prefix for all entity paths")
     parser.add_argument(
-        "--static", action="store_true", default=False, help="optionally mark data to be logged as static"
+        "--static",
+        action="store_true",
+        default=False,
+        help="optionally mark data to be logged as static",
     )
     parser.add_argument(
         "--time",
