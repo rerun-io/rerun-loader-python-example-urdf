@@ -335,7 +335,10 @@ def main() -> None:
 
 
 def set_time_from_args(args, recording: rr.RecordingStream) -> None:
-    if not args.static and args.time is not None:
+    if args.static:
+        return
+
+    if args.time is not None:
         for time_str in args.time:
             parts = time_str.split("=")
             if len(parts) != 2:
@@ -343,6 +346,7 @@ def set_time_from_args(args, recording: rr.RecordingStream) -> None:
             timeline_name, time = parts
             recording.set_time(timeline_name, timestamp=np.datetime64(time))
 
+    if args.sequence is not None:
         for time_str in args.sequence:
             parts = time_str.split("=")
             if len(parts) != 2:
