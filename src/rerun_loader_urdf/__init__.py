@@ -37,8 +37,7 @@ class URDFLogger:
                 xacro.process_doc(xacro_doc)
                 self.urdf = urdf_parser.URDF.from_xml_string(xacro_doc.toxml())
             else:
-                file_content = Path(filepath).read_text()
-                self.urdf = urdf_parser.URDF.from_xml_string(file_content)
+                self.urdf = urdf_parser.URDF.from_xml_file(filepath)
 
         self.filepath = filepath
         self.root_filepath = Path(filepath).parent
@@ -342,7 +341,7 @@ def set_time_from_args(args, recording: rr.RecordingStream) -> None:
             if len(parts) != 2:
                 continue
             timeline_name, time = parts
-            recording.set_time(timeline_name, timestamp=int(time))
+            recording.set_time(timeline_name, timestamp=np.datetime64(time))
 
         for time_str in args.sequence:
             parts = time_str.split("=")
