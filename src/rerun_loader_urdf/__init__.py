@@ -349,7 +349,7 @@ def set_time_from_args(args, recording: rr.RecordingStream) -> None:
             if len(parts) != 2:
                 continue
             timeline_name, time = parts
-            recording.set_time(timeline_name, timestamp=np.datetime64(time))
+            recording.set_time_seconds(timeline_name, seconds=float(time))
 
     if args.sequence is not None:
         for time_str in args.sequence:
@@ -357,7 +357,7 @@ def set_time_from_args(args, recording: rr.RecordingStream) -> None:
             if len(parts) != 2:
                 continue
             timeline_name, time = parts
-            recording.set_time(timeline_name, sequence=int(time))
+            recording.set_time_sequence(timeline_name, sequence=int(time))
 
 
 if __name__ == "__main__":
