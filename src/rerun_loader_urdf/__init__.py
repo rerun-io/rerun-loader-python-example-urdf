@@ -272,6 +272,11 @@ def main() -> None:
     parser.add_argument("filepath", type=str)
 
     parser.add_argument(
+        "--application-id",
+        type=str,
+        help="Recommended ID for the application",
+    )
+    parser.add_argument(
         "--opened-application-id",
         type=str,
         help="optional recommended ID for the application",
@@ -310,8 +315,8 @@ def main() -> None:
     if not is_file or not is_urdf_file:
         exit(rr.EXTERNAL_DATA_LOADER_INCOMPATIBLE_EXIT_CODE)
 
-    if args.opened_application_id is not None:
-        app_id = args.opened_application_id
+    if args.application_id is not None:
+        app_id = args.application_id
     else:
         app_id = args.filepath
 
