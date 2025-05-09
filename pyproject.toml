@@ -1,33 +1,36 @@
 [project]
-name = "rerun-loader-python-example-urdf"
-version = "0.1.1"
-description = "An example data-loader plugin that lets you view URDF files in Rerun"
-readme = "README.md"
-requires-python = ">=3.11"
+name = "rerun-loader-urdf"
+description = "Example of an executable data-loader plugin for the Rerun Viewer for URDF files."
+version = "0.2.0"
+requires-python = ">=3.10"
 dependencies = [
-  "lxml>=5.3.1",
-  "numpy>=1.23",
-  "pillow>=11.1.0",
-  "pycollada>=0.9",
-  "pyyaml>=6.0.2",
-  "rerun-sdk>=0.22.0",
-  "scipy>=1.15.2",
-  "trimesh>=4.6.2",
   "urdfdom-py",
+  "rerun-sdk>=0.23.1",
+  "numpy>=1.26.4",
+  "trimesh>=4.2.2",
+  "pyyaml>=6.0.1",
+  "lxml>=5.1.0",
+  "pillow>=10.2.0",
+  "pycollada>=0.8",
+  "scipy>=1.15.2",
   "xacro>=1.13.3",
 ]
 
 [project.scripts]
-rerun-loader-urdf = "rerun_loader_python_example_urdf:main"
-
+rerun-loader-urdf = "rerun_loader_urdf:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.uv.sources]
+urdfdom-py = { git = "https://github.com/ros/urdf_parser_py.git", rev = "ros2" }
 
 [tool.ruff]
-lint.ignore = [
+line-length = 120
+
+[tool.ruff.lint]
+ignore = [
   "D1",
   "D202",
   "D107",
@@ -41,7 +44,8 @@ lint.ignore = [
   "TID252",
   "UP007",
 ]
-lint.select = [
+
+select = [
   "D",   # pydocstyle codes https://www.pydocstyle.org/en/latest/error_codes.html
   "E",   # pycodestyle error codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
   "F",   # Flake8 error codes https://flake8.pycqa.org/en/latest/user/error-codes.html
@@ -50,8 +54,3 @@ lint.select = [
   "W",   # pycodestyle warning codes: https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
   "UP",  # pyupgrade (ensures idomatic code for supported python version)
 ]
-
-line-length = 120
-
-[tool.uv.sources]
-urdfdom-py = { git = "https://github.com/ros/urdf_parser_py.git", rev = "ros2" }

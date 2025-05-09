@@ -4,31 +4,43 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import os
-import pathlib
-from typing import Optional
+import sys
+from pathlib import Path
 
 import numpy as np
-import rerun as rr  # pip install rerun-sdk
+import rerun as rr
 import scipy.spatial.transform as st
 import trimesh
 import trimesh.visual
 from PIL import Image
-import xacro
 from urdf_parser_py import urdf as urdf_parser
+
+from ._ros_utils import resolve_ros1_package, resolve_ros2_package, resolve_ros_path
 
 
 class URDFLogger:
     """Class to log a URDF to Rerun."""
 
-    def __init__(self, filepath: str, entity_path_prefix: Optional[str]) -> None:
-        if filepath.endswith("xacro"):
-            xacro_doc = xacro.parse(open(filepath))
-            xacro.process_doc(xacro_doc)
-            self.urdf = urdf_parser.URDF.from_xml_string(xacro_doc.toxml())
-        else:
-            self.urdf = urdf_parser.URDF.from_xml_file(filepath)
+    def __init__(self, filepath: str, entity_path_prefix: str = "") -> None:
+        # Suppress all output including warnings
+        with (
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            if str(filepath).endswith("xacro"):
+                import xacro
 
+                xacro_doc = xacro.parse(open(filepath, encoding="utf-8"))
+                xacro.process_doc(xacro_doc)
+                self.urdf = urdf_parser.URDF.from_xml_string(xacro_doc.toxml())
+            else:
+                self.urdf = urdf_parser.URDF.from_xml_file(filepath)
+
+        self.filepath = filepath
+        self.root_filepath = Path(filepath).parent
         self.entity_path_prefix = entity_path_prefix
         self.mat_name_to_mat = {mat.name: mat for mat in self.urdf.materials}
 
@@ -50,35 +62,39 @@ class URDFLogger:
             return f"{self.entity_path_prefix}/{entity_path}"
         return entity_path
 
-    def log(self) -> None:
+    def log(self, recording: rr.RecordingStream) -> None:
         """Log a URDF file to Rerun."""
         for joint in self.urdf.joints:
             entity_path = self.joint_entity_path(joint)
-            self.log_joint(entity_path, joint)
+            self.log_joint(entity_path, joint, recording)
 
         for link in self.urdf.links:
             entity_path = self.link_entity_path(link)
-            self.log_link(entity_path, link)
+            self.log_link(entity_path, link, recording)
 
-    def log_link(self, entity_path: str, link: urdf_parser.Link) -> None:
+    def log_link(self, entity_path: str, link: urdf_parser.Link, recording: rr.RecordingStream) -> None:
         """Log a URDF link to Rerun."""
+
         # create one mesh out of all visuals
         for i, visual in enumerate(link.visuals):
-            self.log_visual(entity_path + f"/visual_{i}", visual)
+            self.log_visual(entity_path + f"/visual_{i}", visual, recording=recording)
 
-    def log_joint(self, entity_path: str, joint: urdf_parser.Joint) -> None:
+    def log_joint(self, entity_path: str, joint: urdf_parser.Joint, recording: rr.RecordingStream) -> None:
         """Log a URDF joint to Rerun."""
-        translation = rotation = None
+        # origin_to_transform(joint.origin)
+        # if joint.origin is not None and joint.origin.xyz is not None:
+        #     translation = joint.origin.xyz
+        # if joint.origin is not None and joint.origin.rpy is not None:
+        #     rotation = st.Rotation.from_euler("xyz", joint.origin.rpy).as_matrix()
+        transform = origin_to_transform(joint.origin)
 
-        if joint.origin is not None and joint.origin.xyz is not None:
-            translation = joint.origin.xyz
+        if transform is not None:
+            recording.log(
+                entity_path,
+                transform,
+            )
 
-        if joint.origin is not None and joint.origin.rpy is not None:
-            rotation = st.Rotation.from_euler("xyz", joint.origin.rpy).as_matrix()
-
-        rr.log(entity_path, rr.Transform3D(translation=translation, mat3x3=rotation))
-
-    def log_visual(self, entity_path: str, visual: urdf_parser.Visual) -> None:
+    def log_visual(self, entity_path: str, visual: urdf_parser.Visual, recording: rr.RecordingStream) -> None:
         """Log a URDF visual to Rerun."""
         material = None
         if visual.material is not None:
@@ -88,20 +104,17 @@ class URDFLogger:
             else:
                 material = visual.material
 
-        transform = np.eye(4)
-        if visual.origin is not None and visual.origin.xyz is not None:
-            transform[:3, 3] = visual.origin.xyz
-        if visual.origin is not None and visual.origin.rpy is not None:
-            transform[:3, :3] = st.Rotation.from_euler("xyz", visual.origin.rpy).as_matrix()
+        transform = origin_to_transform(visual.origin)
 
         if isinstance(visual.geometry, urdf_parser.Mesh):
-            resolved_path = resolve_ros_path(visual.geometry.filename)
+            resolved_path = self.root_filepath / resolve_ros_path(visual.geometry.filename)
             mesh_scale = visual.geometry.scale
             mesh_or_scene = trimesh.load_mesh(resolved_path)
             if mesh_scale is not None:
-                transform[:3, :3] *= mesh_scale
-            else:
-                print(f"Warning: Could not load {resolved_path}")
+                if transform is not None:
+                    transform.scale = mesh_scale
+                else:
+                    transform = rr.Transform3D(scale=mesh_scale)
         elif isinstance(visual.geometry, urdf_parser.Box):
             mesh_or_scene = trimesh.creation.box(extents=visual.geometry.size)
         elif isinstance(visual.geometry, urdf_parser.Cylinder):
@@ -114,13 +127,11 @@ class URDFLogger:
                 radius=visual.geometry.radius,
             )
         else:
-            rr.log(
+            recording.log(
                 "",
                 rr.TextLog("Unsupported geometry type: " + str(type(visual.geometry))),
             )
             mesh_or_scene = trimesh.Trimesh()
-
-        mesh_or_scene.apply_transform(transform)
 
         if isinstance(mesh_or_scene, trimesh.Scene):
             scene = mesh_or_scene
@@ -133,7 +144,7 @@ class URDFLogger:
                     elif material.texture is not None:
                         texture_path = resolve_ros_path(material.texture.filename)
                         mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
-                log_trimesh(entity_path + f"/{i}", mesh)
+                log_trimesh(entity_path + f"/{i}", mesh, transform, recording=recording)
         else:
             mesh = mesh_or_scene
             if material is not None and not isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
@@ -143,7 +154,7 @@ class URDFLogger:
                 elif material.texture is not None:
                     texture_path = resolve_ros_path(material.texture.filename)
                     mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
-            log_trimesh(entity_path, mesh)
+            log_trimesh(entity_path, mesh, transform, recording=recording)
 
 
 def scene_to_trimeshes(scene: trimesh.Scene) -> list[trimesh.Trimesh]:
@@ -163,7 +174,28 @@ def scene_to_trimeshes(scene: trimesh.Scene) -> list[trimesh.Trimesh]:
     return trimeshes
 
 
-def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
+def origin_to_transform(origin: urdf_parser.Origin | None) -> rr.Transform3D | None:
+    """Convert a URDF origin to a Rerun transform."""
+    if origin is None:
+        return None
+
+    if origin.xyz is not None:
+        translation = origin.xyz
+    if origin.rpy is not None:
+        rotation = st.Rotation.from_euler("xyz", origin.rpy).as_quat()
+
+    if translation is not None and rotation is not None:
+        return rr.Transform3D(translation=translation, quaternion=rotation)
+    else:
+        return None
+
+
+def log_trimesh(
+    entity_path: str,
+    mesh: trimesh.Trimesh,
+    transform: rr.Transform3D | None,
+    recording: rr.RecordingStream,
+) -> None:
     vertex_colors = albedo_texture = vertex_texcoords = None
 
     if isinstance(mesh.visual, trimesh.visual.color.ColorVisuals):
@@ -188,7 +220,7 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
             else:
                 vertex_colors = mesh.visual.to_color().vertex_colors
 
-    rr.log(
+    recording.log(
         entity_path,
         rr.Mesh3D(
             vertex_positions=mesh.vertices,
@@ -201,51 +233,8 @@ def log_trimesh(entity_path: str, mesh: trimesh.Trimesh) -> None:
         static=True,
     )
 
-
-def resolve_ros_path(path_str: str) -> str:
-    """Resolve a ROS path to an absolute path."""
-    if path_str.startswith("package://"):
-        path = pathlib.Path(path_str)
-        package_name = path.parts[1]
-        relative_path = pathlib.Path(*path.parts[2:])
-
-        package_path = resolve_ros1_package(package_name) or resolve_ros2_package(package_name)
-
-        if package_path is None:
-            raise ValueError(
-                f"Could not resolve {path}."
-                f"Replace with relative / absolute path, source the correct ROS environment, or install {package_name}."
-            )
-
-        return str(package_path / relative_path)
-    elif path_str.startswith("file://"):
-        return path_str[len("file://") :]
-    else:
-        return path_str
-
-
-def resolve_ros2_package(package_name: str) -> Optional[str]:
-    try:
-        import ament_index_python
-
-        try:
-            return ament_index_python.get_package_share_directory(package_name)
-        except ament_index_python.packages.PackageNotFoundError:
-            return None
-    except ImportError:
-        return None
-
-
-def resolve_ros1_package(package_name: str) -> Optional[str]:
-    try:
-        import rospkg
-
-        try:
-            return rospkg.RosPack().get_path(package_name)
-        except rospkg.ResourceNotFound:
-            return None
-    except ImportError:
-        return None
+    if transform is not None:
+        recording.log(entity_path, transform, static=True)
 
 
 def pil_image_to_albedo_texture(image: Image.Image) -> np.ndarray:
@@ -282,13 +271,28 @@ def main() -> None:
     )
     parser.add_argument("filepath", type=str)
 
-    parser.add_argument("--application-id", type=str, help="Recommended ID for the application")
-    parser.add_argument("--opened-application-id", type=str, help="optional recommended ID for the application")
+    parser.add_argument(
+        "--application-id",
+        type=str,
+        help="Recommended ID for the application",
+    )
+    parser.add_argument(
+        "--opened-application-id",
+        type=str,
+        help="optional recommended ID for the application",
+    )
     parser.add_argument("--recording-id", type=str, help="optional recommended ID for the recording")
-    parser.add_argument("--opened-recording-id", type=str, help="optional recommended ID for the recording")
+    parser.add_argument(
+        "--opened-recording-id",
+        type=str,
+        help="optional recommended ID for the recording",
+    )
     parser.add_argument("--entity-path-prefix", type=str, help="optional prefix for all entity paths")
     parser.add_argument(
-        "--static", action="store_true", default=False, help="optionally mark data to be logged as static"
+        "--static",
+        action="store_true",
+        default=False,
+        help="optionally mark data to be logged as static",
     )
     parser.add_argument(
         "--time",
@@ -317,10 +321,14 @@ def main() -> None:
         app_id = args.filepath
 
     rr.init(app_id, recording_id=args.recording_id)
-    # The most important part of this: log to standard output so the Rerun Viewer can ingest it!
-    rr.stdout()
+    recording = rr.get_global_data_recording()
+    if recording is None:
+        recording = rr.RecordingStream(application_id=app_id, recording_id=args.recording_id)
 
-    set_time_from_args(args)
+    # The most important part of this: log to standard output so the Rerun Viewer can ingest it!
+    recording.stdout()
+
+    set_time_from_args(args, recording)
 
     if args.entity_path_prefix is not None:
         prefix = args.entity_path_prefix
@@ -328,24 +336,28 @@ def main() -> None:
         prefix = os.path.basename(args.filepath)
 
     urdf_logger = URDFLogger(args.filepath, prefix)
-    urdf_logger.log()
+    urdf_logger.log(recording=recording)
 
 
-def set_time_from_args(args) -> None:
-    if not args.static and args.time is not None:
+def set_time_from_args(args, recording: rr.RecordingStream) -> None:
+    if args.static:
+        return
+
+    if args.time is not None:
         for time_str in args.time:
             parts = time_str.split("=")
             if len(parts) != 2:
                 continue
             timeline_name, time = parts
-            rr.set_time_nanos(timeline_name, int(time))
+            recording.set_time_seconds(timeline_name, seconds=float(time))
 
+    if args.sequence is not None:
         for time_str in args.sequence:
             parts = time_str.split("=")
             if len(parts) != 2:
                 continue
             timeline_name, time = parts
-            rr.set_time_sequence(timeline_name, int(time))
+            recording.set_time_sequence(timeline_name, sequence=int(time))
 
 
 if __name__ == "__main__":
