@@ -97,6 +97,7 @@ class URDFLogger:
     def log_visual(self, entity_path: str, visual: urdf_parser.Visual, recording: rr.RecordingStream) -> None:
         """Log a URDF visual to Rerun."""
         material = None
+        mesh_or_scene = None
         if visual.material is not None:
             if visual.material.color is None and visual.material.texture is None:
                 # use globally defined material
@@ -109,12 +110,11 @@ class URDFLogger:
         if isinstance(visual.geometry, urdf_parser.Mesh):
             resolved_path = self.root_filepath / resolve_ros_path(visual.geometry.filename)
             mesh_scale = visual.geometry.scale
-            mesh_or_scene = trimesh.load_mesh(resolved_path)
-            if mesh_scale is not None:
-                if transform is not None:
-                    transform.scale = mesh_scale
-                else:
-                    transform = rr.Transform3D(scale=mesh_scale)
+
+            transform = rr.Transform3D(scale=mesh_scale)
+
+            recording.log(entity_path + f"/{resolved_path}", rr.Asset3D(path=resolved_path), transform)
+
         elif isinstance(visual.geometry, urdf_parser.Box):
             mesh_or_scene = trimesh.creation.box(extents=visual.geometry.size)
         elif isinstance(visual.geometry, urdf_parser.Cylinder):
@@ -145,7 +145,7 @@ class URDFLogger:
                         texture_path = resolve_ros_path(material.texture.filename)
                         mesh.visual = trimesh.visual.texture.TextureVisuals(image=Image.open(texture_path))
                 log_trimesh(entity_path + f"/{i}", mesh, transform, recording=recording)
-        else:
+        elif mesh_or_scene is not None:
             mesh = mesh_or_scene
             if material is not None and not isinstance(mesh.visual, trimesh.visual.texture.TextureVisuals):
                 if material.color is not None:
