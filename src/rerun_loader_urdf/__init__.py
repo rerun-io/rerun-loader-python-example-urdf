@@ -114,6 +114,10 @@ class URDFLogger:
             transform = rr.Transform3D(scale=mesh_scale)
 
             recording.log(entity_path + f"/{resolved_path}", rr.Asset3D(path=resolved_path), transform)
+            if material is not None:
+                recording.log(
+                    entity_path + f"/{resolved_path}", rr.Asset3D.from_fields(albedo_factor=material.color.rgba)
+                )
 
         elif isinstance(visual.geometry, urdf_parser.Box):
             mesh_or_scene = trimesh.creation.box(extents=visual.geometry.size)
