@@ -1,7 +1,7 @@
 [project]
 name = "rerun-loader-urdf"
 description = "Example of an executable data-loader plugin for the Rerun Viewer for URDF files."
-version = "0.2.0"
+version = "0.3.0"
 requires-python = ">=3.10"
 dependencies = [
   "urdfdom-py",
