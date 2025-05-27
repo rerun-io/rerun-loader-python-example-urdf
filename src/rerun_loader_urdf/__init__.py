@@ -306,7 +306,7 @@ def main() -> None:
         action="append",
         help="optional sequences to log at (e.g. `--sequence sim_frame=42`)",
     )
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
 
     is_file = os.path.isfile(args.filepath)
     is_urdf_file = any(ext in args.filepath for ext in [".urdf", ".xacro"])
