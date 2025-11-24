@@ -1,3 +1,6 @@
+# ⚠️ Discontinued!
+Rerun has built-in support for URDFs now, so no need for this example.
+
 # URDF -> Rerun plugin
 
 This is an example data-loader plugin that lets you view URDF files in the [Rerun](https://github.com/rerun-io/rerun/) Viewer.
